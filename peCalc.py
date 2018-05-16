@@ -13,18 +13,27 @@ parser.add_argument('-g','--gainScale', dest='gainScale', action='store', defaul
 parser.add_argument('-d','--display', dest='showPlot', action='store_true', default=False, help='Creates image of all pulses overlayed on one another and quits the program.')
 parser.add_argument('-peaks', '--peaks', dest='doPEconversionScaleCalculation',action='store_true',default=False, help="Uses the first five peaks in the RAW output to calculate the Volts-to-PE scalar. You may need to inspect and adjust the limits on each PE gaus function.")
 
+parser.add_argument('-ch2', dest='dataInCh2', action='store_true', default=False, help="Use this flag if the data was stored in channel 2 of the DRS4. (post may 14, 2018. Channel 1 died ?)")
+
 args = parser.parse_args()
 
 inputFile = rt.TFile(args.inFileName, "READ") # saving only the parts of the root file we're intrested in. For later use and easier access
 oldtree = inputFile.Get("T")
 oldtree.SetBranchStatus("*",0)
 oldtree.SetBranchStatus("event",1) # we may not even need this branch...
-oldtree.SetBranchStatus("c1",1) # pulse height for channel 1
-oldtree.SetBranchStatus("t1",1) # time values for channel 1
+if args.dataInCh2:
+	oldtree.SetBranchStatus("c2",1) # pulse height for channel 2
+	oldtree.SetBranchStatus("t2",1) # time values for channel 2
+else:
+	oldtree.SetBranchStatus("c1",1) # pulse height for channel 1
+	oldtree.SetBranchStatus("t1",1) # time values for channel 1
 
 if args.showPlot:
 	c = rt.TCanvas('c','c',2000,1000)
-	oldtree.Draw("-c1:t1")
+	if args.dataInCh2:
+		oldtree.Draw("-c2:t2")
+	else:
+		oldtree.Draw("-c1:t1")		
 	c.SaveAs(args.inFileName[:-5]+".png")
 	sys.exit("Examine the plot and find the pulse edges. Then rerun this script with the correct arguments. (-s [pulseStartBin] -e [pulseEndBin])")
 
@@ -80,17 +89,21 @@ rt.gStyle.SetOptStat("MRen")
 for iEvent in range(nEntries):
 	eventOver0p5flag = False
 	tree.GetEvent(iEvent)
+	if args.dataInCh2:
+		dataVector = tree.c2
+	else:
+		dataVector = tree.c1
 	ped = 0 # Calculate the pedestal value
 	for pedBin in range(args.pulseStart-30-pulseDelta,args.pulseStart-30):
-		ped -= tree.c1[pedBin] # minus because signal is negative
+		ped -= dataVector[pedBin] # minus because signal is negative
 	hist_Ped.Fill(ped)
 	sig = -ped # Calculate the integral of the pulse, corrected for the pedestal
 	#NOTE: This assumes the dt of the pedestal is the same as the dt of the signal region
 	# this dt is the variable 'deltaPulse'
 	# if dt is different for the pedestal and pulse, you need to scale the pedestal subtraction corretly. You're smart, you can do it!
 	for sigBin in range(args.pulseStart, args.pulseEnd):
-		sig -= tree.c1[sigBin] # minus because signal is negative
-		if -tree.c1[sigBin] >= 0.499908: # check to make sure that the event didnt produce a signal greater than 0.5 volts. 
+		sig -= dataVector[sigBin] # minus because signal is negative
+		if -dataVector[sigBin] >= 0.499908: # check to make sure that the event didnt produce a signal greater than 0.5 volts. 
 			totalBinsOver0p5 += 1
 			eventOver0p5flag = True
 	if eventOver0p5flag:
@@ -159,9 +172,11 @@ outputFile.Write()
 meanPE = hist_pe_Used.GetMean()
 sigma = hist_pe_Used.GetStdDev()
 meanErr = hist_pe_Used.GetMeanError()
+sigmaErr = hist_pe_Used.GetStdDevError()
 
 print("Events Counted: " +str(int(hist_pe_Used.GetEntries())) + " (p.e. > 0.5 and not overvoltage)")
-print("p.e. = "+ str(meanPE) + " +- " + str(meanErr) + ", " +str(sigma) + " (mu +- err_mu, stdDev)")
+print("         p.e.           err        stdDev            err")
+print(str(meanPE) + " " + str(meanErr) + " " +str(sigma) + " " + str(sigmaErr))
 print("Pulse Range: " + str(args.pulseStart) + " - " + str(args.pulseEnd))
 
 
