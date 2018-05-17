@@ -12,7 +12,6 @@ parser.add_argument('-e','--endPulse',dest='pulseEnd', action='store',type=int, 
 parser.add_argument('-g','--gainScale', dest='gainScale', action='store', default=1, type=float, help='The gain scale. Default = 1')
 parser.add_argument('-d','--display', dest='showPlot', action='store_true', default=False, help='Creates image of all pulses overlayed on one another and quits the program.')
 parser.add_argument('-peaks', '--peaks', dest='doPEconversionScaleCalculation',action='store_true',default=False, help="Uses the first five peaks in the RAW output to calculate the Volts-to-PE scalar. You may need to inspect and adjust the limits on each PE gaus function.")
-
 parser.add_argument('-ch2', dest='dataInCh2', action='store_true', default=False, help="Use this flag if the data was stored in channel 2 of the DRS4. (post may 14, 2018. Channel 1 died ?)")
 
 args = parser.parse_args()
@@ -74,10 +73,6 @@ hist_pe_Used = rt.TH1F('hist_pe_Used','Calculated photoelectron count, no OV',40
 hist_pe_Used.SetXTitle("# p.e.")
 hist_pe_Used.SetYTitle("Count")
 
-hist_pe_Old = rt.TH1F('hist_pe_Old','Calculated photoelectron count, Old CF',400,0,100)
-hist_pe_Old.SetXTitle("# p.e.")
-hist_pe_Old.SetYTitle("Count")
-
 hist_RAW = rt.TH1F('hist_RAW','Raw Output',200,-1,2)
 hist_RAW.SetXTitle("ADC/Integrated Voltage")
 hist_RAW.SetYTitle("Count")
@@ -111,11 +106,9 @@ for iEvent in range(nEntries):
 	
 	# Convert integrated pulse into # p.e.
 	pe = sig*conversion_factor
-	pe_old = sig*conversion_factor_old
 	hist_pe_All.Fill(pe)
 	hist_RAW.Fill(sig)
 	if (pe > 0.5 and not eventOver0p5flag):
-		hist_pe_Old.Fill(pe_old)
 		hist_pe_Used.Fill(pe)
 
 print("Total number of Events (Bins) over voltage: "+str(totalEventsOver0p5)+ " ("+str(totalBinsOver0p5)+")")
