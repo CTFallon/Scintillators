@@ -4,6 +4,20 @@
 import ROOT as rt
 import sys, os.path, argparse
 
+def truncMean(histo, acc = 0.001, maxIter = 100):
+	oldMean = histo.GetMean()
+	newMean = oldMean + 1.0
+	i = 0
+	while abs(oldMean - newMean) > acc:
+		histo.GetXaxis().SetRangeUser(newMean*0.2, newMean*2.0)
+		oldMean = newMean
+		newMean = histo.GetMean()
+		histo.GetXaxis().SetRange()
+		i += 1
+		if i > maxIter:
+			sys.exit("maximum number of iterations reached for truncated mean")
+	return newMean
+
 parser = argparse.ArgumentParser(description="Calculate the photoelectron (p.e.) yield of a cosmicRay data set.")
 
 parser.add_argument('-f','--file', dest='inFileName', action='store', default='test.root', help='The input file\'s name. Full path if not in running directory. .root extension')
@@ -171,6 +185,7 @@ print("Events Counted: " +str(int(hist_pe_Used.GetEntries())) + " (p.e. > 0.5 an
 print("         p.e.           err        stdDev            err")
 print(str(meanPE) + " " + str(meanErr) + " " +str(sigma) + " " + str(sigmaErr))
 print("Pulse Range: " + str(args.pulseStart) + " - " + str(args.pulseEnd))
+print("Truncated mean:" +str(truncMean(hist_pe_Used)))
 
 
 	
