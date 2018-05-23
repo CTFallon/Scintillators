@@ -16,7 +16,14 @@ def truncMean(histo, acc = 0.001, maxIter = 100):
 		i += 1
 		if i > maxIter:
 			sys.exit("maximum number of iterations reached for truncated mean")
-	return newMean
+	else:
+		histo.GetXaxis().SetRangeUser(newMean*0.2, newMean*2.0)
+		meanPE = histo.GetMean()
+		sigma = histo.GetStdDev()
+		meanErr = histo.GetMeanError()
+		sigmaErr = histo.GetStdDevError()
+		print("TruncMean " + str(meanPE) + " " + str(meanErr) + " " +str(sigma) + " " + str(sigmaErr))
+
 
 parser = argparse.ArgumentParser(description="Calculate the photoelectron (p.e.) yield of a cosmicRay data set.")
 
@@ -182,10 +189,10 @@ meanErr = hist_pe_Used.GetMeanError()
 sigmaErr = hist_pe_Used.GetStdDevError()
 
 print("Events Counted: " +str(int(hist_pe_Used.GetEntries())) + " (p.e. > 0.5 and not overvoltage)")
-print("         p.e.           err        stdDev            err")
-print(str(meanPE) + " " + str(meanErr) + " " +str(sigma) + " " + str(sigmaErr))
+print("                    p.e.           err        stdDev            err")
+print("Full Mean " + str(meanPE) + " " + str(meanErr) + " " +str(sigma) + " " + str(sigmaErr))
+truncMean(hist_pe_Used)
 print("Pulse Range: " + str(args.pulseStart) + " - " + str(args.pulseEnd))
-print("Truncated mean:" +str(truncMean(hist_pe_Used)))
 
 
 	
