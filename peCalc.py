@@ -128,7 +128,6 @@ for iEvent in range(nEntries):
 	dataVector = tree.data
 	ped = 0 # Calculate the pedestal value
 	for pedBin in range(args.pulseStart-30-pulseDelta,args.pulseStart-30):
-		print("Check 3")
 		ped -= dataVector[pedBin] # minus because signal is negative
 	hist_Ped.Fill(ped)
 	sig = -ped # Calculate the integral of the pulse, corrected for the pedestal
