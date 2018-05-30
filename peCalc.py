@@ -41,25 +41,50 @@ inputFile = rt.TFile(args.inFileName, "READ") # saving only the parts of the roo
 oldtree = inputFile.Get("T")
 oldtree.SetBranchStatus("*",0)
 oldtree.SetBranchStatus("event",1) # we may not even need this branch...
-if args.dataInCh2:
-	oldtree.SetBranchStatus("c2",1) # pulse height for channel 2
-	oldtree.SetBranchStatus("t2",1) # time values for channel 2
-else:
-	oldtree.SetBranchStatus("c1",1) # pulse height for channel 1
-	oldtree.SetBranchStatus("t1",1) # time values for channel 1
+oldtree.SetBranchStatus("c1",1)
+oldtree.SetBranchStatus("c2",1)
+oldtree.SetBranchStatus("c3",1)
+oldtree.SetBranchStatus("c4",1)
+
+#auto detect what channel data is in
+oldtree.Draw('c1>>ch1Hist')
+ch1Hist = rt.gDirectory.Get("ch1Hist")
+oldtree.Draw('c2>>ch2Hist')
+ch2Hist = rt.gDirectory.Get("ch2Hist")
+oldtree.Draw('c3>>ch3Hist')
+ch3Hist = rt.gDirectory.Get("ch3Hist")
+oldtree.Draw('c4>>ch4Hist')
+ch4Hist = rt.gDirectory.Get("ch4Hist")
+chMeans = [ch1Hist.GetMean(),ch2Hist.GetMean(),ch3Hist.GetMean(),ch4Hist.GetMean()]
+
+dataCh = chMeans.index(min(chMeans))+1
+
+print("data in channel: " + str(dataCh))
+
+oldtree.SetBranchStatus("c1",0)
+oldtree.SetBranchStatus("c2",0)
+oldtree.SetBranchStatus("c3",0)
+oldtree.SetBranchStatus("c4",0)
+
+
+oldtree.SetBranchStatus('c{}'.format(dataCh),1)
+oldtree.SetBranchStatus('t{}'.format(dataCh),1)
 
 if args.showPlot:
 	c = rt.TCanvas('c','c',2000,1000)
-	if args.dataInCh2:
-		oldtree.Draw("-c2:t2")
-	else:
-		oldtree.Draw("-c1:t1")		
+	oldtree.Draw("-c{}:t{}".format(dataCh,dataCh))
 	c.SaveAs(args.inFileName[:-5]+".png")
 	sys.exit("Examine the plot and find the pulse edges. Then rerun this script with the correct arguments. (-s [pulseStartBin] -e [pulseEndBin])")
 
 outputFile = rt.TFile(args.inFileName[:-5]+"_analysed.root","RECREATE")
 tree = oldtree.CloneTree()
 inputFile.Close()
+#rename data leaf for easy access later
+tree.GetLeaf("c{}".format(dataCh)).SetTitle("data")
+tree.GetLeaf("c{}".format(dataCh)).SetName("data")
+
+tree.GetLeaf("t{}".format(dataCh)).SetTitle("time")
+tree.GetLeaf("t{}".format(dataCh)).SetName("time")
 
 nEntries = tree.GetEntries()
 print("Total Events:" +str(nEntries))
@@ -86,31 +111,24 @@ conversion_factor_old = 1e9/gain_at_3V_2050VE*6.24/50.0/13.0
 
 conversion_factor = 5.1783804406 # from D1 Low Light test
 
-hist_pe_All = rt.TH1F("pe","Calculated photoelectron count, all events",400,0,100)
-hist_pe_All.SetXTitle("# p.e.")
-hist_pe_All.SetYTitle("Count")
-
-hist_pe_Used = rt.TH1F('hist_pe_Used','Calculated photoelectron count, no OV',400,0,100)
-hist_pe_Used.SetXTitle("# p.e.")
-hist_pe_Used.SetYTitle("Count")
-
-hist_RAW = rt.TH1F('hist_RAW','Raw Output',200,-1,2)
-hist_RAW.SetXTitle("ADC/Integrated Voltage")
-hist_RAW.SetYTitle("Count")
-
+hist_pe_All = rt.TH1F("pe","Calculated photoelectron count, all events;p.e.;count",400,0,100)
+hist_pe_Used = rt.TH1F('hist_pe_Used','Calculated photoelectron count;p.e.;count, no OV',400,0,100)
+hist_RAW = rt.TH1F('hist_RAW','Raw Output;ADC/Integrated Voltage;Count',200,-1,2)
 hist_Ped = rt.TH1F("hist_Ped","Pedestal Output;ADC/Voltage;Count",500,0.5,1.1)
 
 rt.gStyle.SetOptStat("MRen")
 
+
+#dataVector = []
+#tree.SetBranchAddress('c{}'.format(dataCh),dataVector)
+
 for iEvent in range(nEntries):
 	eventOver0p5flag = False
 	tree.GetEvent(iEvent)
-	if args.dataInCh2:
-		dataVector = tree.c2
-	else:
-		dataVector = tree.c1
+	dataVector = tree.data
 	ped = 0 # Calculate the pedestal value
 	for pedBin in range(args.pulseStart-30-pulseDelta,args.pulseStart-30):
+		print("Check 3")
 		ped -= dataVector[pedBin] # minus because signal is negative
 	hist_Ped.Fill(ped)
 	sig = -ped # Calculate the integral of the pulse, corrected for the pedestal
