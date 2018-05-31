@@ -16,6 +16,7 @@ def truncMean(histo, acc = 0.001, maxIter = 100):
 		i += 1
 		if i > maxIter:
 			sys.exit("maximum number of iterations reached for truncated mean")
+			return 0
 	else:
 		histo.GetXaxis().SetRangeUser(newMean*0.2, newMean*2.0)
 		meanPE = histo.GetMean()
@@ -23,6 +24,7 @@ def truncMean(histo, acc = 0.001, maxIter = 100):
 		meanErr = histo.GetMeanError()
 		sigmaErr = histo.GetStdDevError()
 		print("TruncMean " + str(meanPE) + " " + str(meanErr) + " " +str(sigma) + " " + str(sigmaErr))
+		return meanPE
 
 
 parser = argparse.ArgumentParser(description="Calculate the photoelectron (p.e.) yield of a cosmicRay data set.")
@@ -33,7 +35,6 @@ parser.add_argument('-e','--endPulse',dest='pulseEnd', action='store',type=int, 
 parser.add_argument('-g','--gainScale', dest='gainScale', action='store', default=1, type=float, help='The gain scale. Default = 1')
 parser.add_argument('-d','--display', dest='showPlot', action='store_true', default=False, help='Creates image of all pulses overlayed on one another and quits the program.')
 parser.add_argument('-peaks', '--peaks', dest='doPEconversionScaleCalculation',action='store_true',default=False, help="Uses the first five peaks in the RAW output to calculate the Volts-to-PE scalar. You may need to inspect and adjust the limits on each PE gaus function.")
-parser.add_argument('-ch2', dest='dataInCh2', action='store_true', default=False, help="Use this flag if the data was stored in channel 2 of the DRS4. (post may 14, 2018. Channel 1 died ?)")
 
 args = parser.parse_args()
 
@@ -118,10 +119,6 @@ hist_Ped = rt.TH1F("hist_Ped","Pedestal Output;ADC/Voltage;Count",500,0.5,1.1)
 
 rt.gStyle.SetOptStat("MRen")
 
-
-#dataVector = []
-#tree.SetBranchAddress('c{}'.format(dataCh),dataVector)
-
 for iEvent in range(nEntries):
 	eventOver0p5flag = False
 	tree.GetEvent(iEvent)
@@ -198,7 +195,7 @@ if args.doPEconversionScaleCalculation:
 	newCF = (1.0/total.GetParameter(1)+2.0/total.GetParameter(4)+3.0/total.GetParameter(7)+4.0/total.GetParameter(10)+5.0/total.GetParameter(13)+6.0/total.GetParameter(16))/6.0
 	print("New Conversion Factor = " + str(newCF))
 
-outputFile.Write()
+
 
 meanPE = hist_pe_Used.GetMean()
 sigma = hist_pe_Used.GetStdDev()
@@ -208,10 +205,18 @@ sigmaErr = hist_pe_Used.GetStdDevError()
 print("Events Counted: " +str(int(hist_pe_Used.GetEntries())) + " (p.e. > 0.5 and not overvoltage)")
 print("                    p.e.           err        stdDev            err")
 print("Full Mean " + str(meanPE) + " " + str(meanErr) + " " +str(sigma) + " " + str(sigmaErr))
-truncMean(hist_pe_Used)
+meanTrunc = truncMean(hist_pe_Used)
 print("Pulse Range: " + str(args.pulseStart) + " - " + str(args.pulseEnd))
 
+c1 = rt.TCanvas()
+hist_pe_Used.Draw()
+l1 = rt.TLine(0.2*meanTrunc,0, 0.2*meanTrunc, hist_pe_Used.GetMaximum())
+l2 = rt.TLine(2.0*meanTrunc,0, 2.0*meanTrunc, hist_pe_Used.GetMaximum())
+l1.Draw("same")
+l2.Draw("same")
+c1.SaveAs(args.inFileName[:-5]+"_peTrunc.png")
 
-	
+
+outputFile.Write() 	
 outputFile.Close()
 
