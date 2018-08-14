@@ -25,7 +25,7 @@ def truncMean(histo, acc = 0.001, maxIter = 100):
 		meanErr = histo.GetMeanError()
 		sigmaErr = histo.GetStdDevError()
 		print("TruncMean " + str(meanPE) + " " + str(meanErr) + " " +str(sigma) + " " + str(sigmaErr))
-		return meanPE
+		return meanPE, meanErr, sigma, sigmaErr
 
 
 parser = argparse.ArgumentParser(description="Calculate the photoelectron (p.e.) yield of a cosmicRay data set.")
@@ -117,7 +117,9 @@ gain_at_3V_2050VE = 1.76e6 * 0.96
 conversion_factor_Ping = 1e9/gain_at_3V_2050VE*6.24/50.0/13.0
 
 #conversion_factor = 5.1783804406 # from D1 Low Light test, first SiPM (broken), use this for tests before July 20
-conversion_factor = 5.39216613359 # from Rquarter Low Light Test, July 23 2018 (reran through -peaks on Aug 3)
+#conversion_factor = 5.39216613359 # from Rquarter Low Light Test, July 23 2018 (reran through -peaks on Aug 3)
+conversion_factor = 5.56733209175 #from SCSN81 quarter Low Light Test, Aug 6, 2018)
+
 
 hist_pe_All = rt.TH1F("pe","Calculated photoelectron count, all events;p.e.;count",400,0,100)
 hist_pe_Used = rt.TH1F('hist_pe_Used','Calculated photoelectron count;p.e.;count, no OV',400,0,100)
@@ -213,13 +215,16 @@ sigmaErr = hist_pe_Used.GetStdDevError()
 print("Events Counted: " +str(int(hist_pe_Used.GetEntries())) + " (p.e. > 0.5 and not overvoltage)")
 print("                    p.e.           err        stdDev            err")
 print("Full Mean " + str(meanPE) + " " + str(meanErr) + " " +str(sigma) + " " + str(sigmaErr))
-meanTrunc = truncMean(hist_pe_Used)
+meanPETrunc, meanErrTrunc, sigmaTrunc, sigmaErrTrunc = truncMean(hist_pe_Used)
 print("Pulse Range: " + str(args.pulseStart) + " - " + str(args.pulseEnd))
+print("For Copying into Excel:")
+print(str(meanPE) + " " + str(meanErr) + " " +str(sigma) + " " + str(sigmaErr) + " " + str(meanPETrunc) + " " + str(meanErrTrunc) + " " +str(sigmaTrunc) + " " + str(sigmaErrTrunc) + " " + str(args.pulseStart) + " " + str(args.pulseEnd) + " " + str(int(hist_pe_Used.GetEntries())) + " " + str(nEntries))
 
 c1 = rt.TCanvas()
-hist_pe_Used.Draw()
-l1 = rt.TLine(0.2*meanTrunc,0, 0.2*meanTrunc, hist_pe_Used.GetMaximum())
-l2 = rt.TLine(2.0*meanTrunc,0, 2.0*meanTrunc, hist_pe_Used.GetMaximum())
+c1.SetLogy()
+hist_pe_All.Draw()
+l1 = rt.TLine(0.2*meanPETrunc,0, 0.2*meanPETrunc, hist_pe_Used.GetMaximum())
+l2 = rt.TLine(2.0*meanPETrunc,0, 2.0*meanPETrunc, hist_pe_Used.GetMaximum())
 l1.Draw("same")
 l2.Draw("same")
 c1.SaveAs(args.inFileName[:-5]+"_peTrunc.png")
