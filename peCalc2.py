@@ -118,8 +118,8 @@ conversion_factor_Ping = 1e9/gain_at_3V_2050VE*6.24/50.0/13.0
 
 #conversion_factor = 5.1783804406 # from D1 Low Light test, first SiPM (broken), use this for tests before July 20
 #conversion_factor = 5.39216613359 # from Rquarter Low Light Test, July 23 2018 (reran through -peaks on Aug 3)
-conversion_factor = 5.56733209175 #from SCSN81 quarter Low Light Test, Aug 6, 2018)
-
+#conversion_factor = 5.56733209175 #from SCSN81 quarter Low Light Test, Aug 6, 2018)
+conversion_factor = 5.31001529557 # from PG5 tile1 LowLight test, Sept 12, 2018
 
 hist_pe_All = rt.TH1F("pe","Calculated photoelectron count, all events;p.e.;count",400,0,100)
 hist_pe_Used = rt.TH1F('hist_pe_Used','Calculated photoelectron count;p.e.;count, no OV',400,0,100)
@@ -218,6 +218,7 @@ print("Full Mean " + str(meanPE) + " " + str(meanErr) + " " +str(sigma) + " " + 
 meanPETrunc, meanErrTrunc, sigmaTrunc, sigmaErrTrunc = truncMean(hist_pe_Used)
 print("Pulse Range: " + str(args.pulseStart) + " - " + str(args.pulseEnd))
 print("For Copying into Excel:")
+print("meanPE meanErr sigma sigmaErr meanPETrunc meanErrTrunc sigmaTrunc sigmaErrTrunc pulseStart pulseEnd usedEvents totalEvents")
 print(str(meanPE) + " " + str(meanErr) + " " +str(sigma) + " " + str(sigmaErr) + " " + str(meanPETrunc) + " " + str(meanErrTrunc) + " " +str(sigmaTrunc) + " " + str(sigmaErrTrunc) + " " + str(args.pulseStart) + " " + str(args.pulseEnd) + " " + str(int(hist_pe_Used.GetEntries())) + " " + str(nEntries))
 
 c1 = rt.TCanvas()
