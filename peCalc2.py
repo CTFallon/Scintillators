@@ -24,7 +24,11 @@ def truncMean(histo, acc = 0.001, maxIter = 100):
 		sigma = histo.GetStdDev()
 		meanErr = histo.GetMeanError()
 		sigmaErr = histo.GetStdDevError()
-		print("TruncMean " + str(meanPE) + " " + str(meanErr) + " " +str(sigma) + " " + str(sigmaErr))
+		print("TruncMean "
+				+ str(meanPE) + " "
+				+ str(meanErr) + " "
+				+str(sigma) + " "
+				+ str(sigmaErr))
 		return meanPE, meanErr, sigma, sigmaErr
 
 
@@ -39,7 +43,9 @@ parser.add_argument('-peaks', '--peaks', dest='doPEconversionScaleCalculation',a
 parser.add_argument('-A','--AutoPulse', dest='AutoPulse', action='store_true', default=False, help='Auto-detects the beginning of the average pulse. May need adjusting.')
 args = parser.parse_args()
 
-inputFile = rt.TFile(args.inFileName, "READ") # saving only the parts of the root file we're intrested in. For later use and easier access
+inputFile = rt.TFile(args.inFileName, "READ")
+# saving only the parts of the root file we're intrested in.
+# For later use and easier access
 oldtree = inputFile.Get("T")
 oldtree.SetBranchStatus("*",0)
 oldtree.SetBranchStatus("event",1) # we may not even need this branch...
@@ -57,24 +63,27 @@ oldtree.Draw('c3>>ch3Hist')
 ch3Hist = rt.gDirectory.Get("ch3Hist")
 oldtree.Draw('c4>>ch4Hist')
 ch4Hist = rt.gDirectory.Get("ch4Hist")
-chMeans = [abs(ch1Hist.GetMean()),abs(ch2Hist.GetMean()),abs(ch3Hist.GetMean()),abs(ch4Hist.GetMean())]
-
-dataCh = chMeans.index(min(chMeans))+1
+chMeans = [abs(ch1Hist.GetMean()),
+			abs(ch2Hist.GetMean()),
+			abs(ch3Hist.GetMean()),
+			abs(ch4Hist.GetMean())]
+# The channel with the lowest mean is the channel with the data because
+# the data is negative.
+dataCh = chMeans.index(min(chMeans))+1 # add one due to python 0 indexing
 
 print("data in channel: " + str(dataCh))
 
+# turn off all channels, turn on data channel
 oldtree.SetBranchStatus("c1",0)
 oldtree.SetBranchStatus("c2",0)
 oldtree.SetBranchStatus("c3",0)
 oldtree.SetBranchStatus("c4",0)
-
-
 oldtree.SetBranchStatus('c{}'.format(dataCh),1)
 oldtree.SetBranchStatus('t{}'.format(dataCh),1)
 
 if args.showPlot:
 	c = rt.TCanvas('c','c',2000,1000)
-	oldtree.Draw("-c{}:t{}".format(dataCh,dataCh))
+	oldtree.Draw("-c{0}:t{0}".format(dataCh))
 	c.SaveAs(args.inFileName[:-5]+".png")
 	if not args.AutoPulse:
 		sys.exit("Examine the plot and find the pulse edges. Then rerun this script with the correct arguments. (-s [pulseStartBin] -e [pulseEndBin])")
@@ -104,17 +113,17 @@ deltaPedestal = pedestalStart-pedestalEnd
 
 pulseDelta  = args.pulseEnd - args.pulseStart
 if args.pulseStart < pedestalStart:
-	sys.exit("PulseStart has to be greater than " + int(pedestalStart) + " for the pedestal to work properly. Either re-take the data with a longer delay, or change the pedestal calculation.")
+	sys.exit("PulseStart has to be greater than {} for the pedestal to work properly. Either re-take the data with a longer delay, or change the pedestal calculation.".format(pedestalStart))
 
 #Values for signal->pe conversion taken from Ping
 # 0.96 is Ping's GainScale.
 # I wanted to set the default to 1, but not messup these numbers, so I hardcoded it in.
 # these values are depreciated anyway.
 
-gain_at_1p8V = 8.98e5 * 0.96
-gain_at_3V = 1.7e6 * 0.96 * 0.978543
-gain_at_3V_2050VE = 1.76e6 * 0.96
-conversion_factor_Ping = 1e9/gain_at_3V_2050VE*6.24/50.0/13.0
+#gain_at_1p8V = 8.98e5 * 0.96
+#gain_at_3V = 1.7e6 * 0.96 * 0.978543
+#gain_at_3V_2050VE = 1.76e6 * 0.96
+#conversion_factor_Ping = 1e9/gain_at_3V_2050VE*6.24/50.0/13.0
 
 #conversion_factor = 5.1783804406 # from D1 Low Light test, first SiPM (broken), use this for tests before July 20
 #conversion_factor = 5.39216613359 # from Rquarter Low Light Test, July 23 2018 (reran through -peaks on Aug 3)
@@ -156,7 +165,9 @@ if args.pulseStart:
 	print("Total number of Events (Bins) over voltage: "+str(totalEventsOver0p5)+ " ("+str(totalBinsOver0p5)+")")
 
 if args.doPEconversionScaleCalculation:
-	# The limits need to be manually changed. Approximate the mid point between each peak. If the peaks arn't distinct enough, take more data or further seperate the SiPM from the tile.
+	# The limits need to be manually changed. Approximate the mid point between
+	# each peak. If the peaks arn't distinct enough, take more data or further
+	# seperate the SiPM from the tile.
 	pe1 = rt.TF1("pe1",'gaus',0.10,0.27)
 	pe1.SetLineColor(rt.kGreen)
 	pe2 = rt.TF1("pe2",'gaus',0.27,0.46)
@@ -201,8 +212,16 @@ if args.doPEconversionScaleCalculation:
 	hist_RAW.Fit(total,"R+")
 	
 	print("Current Conversion Factor = " +str(conversion_factor))
-	newCF = (1.0/total.GetParameter(1)+2.0/total.GetParameter(4)+3.0/total.GetParameter(7)+4.0/total.GetParameter(10)+5.0/total.GetParameter(13)+6.0/total.GetParameter(16))/6.0
-	#newCF = (1.0/total.GetParameter(1)+2.0/total.GetParameter(4)+3.0/total.GetParameter(7)+4.0/total.GetParameter(10))/4.0
+	newCF = (1.0/total.GetParameter(1)+
+			2.0/total.GetParameter(4)+
+			3.0/total.GetParameter(7)+
+			4.0/total.GetParameter(10)+
+			5.0/total.GetParameter(13)+
+			6.0/total.GetParameter(16))/6.0
+	#newCF = (1.0/total.GetParameter(1)+
+			#2.0/total.GetParameter(4)+
+			#3.0/total.GetParameter(7)+
+			#4.0/total.GetParameter(10))/4.0
 	print("New Conversion Factor = " + str(newCF))
 
 
