@@ -4,6 +4,7 @@
 import ROOT as rt
 import sys, os.path, argparse
 from signalFinder import findSignal
+rt.gROOT.SetBatch(True)
 
 def truncMean(histo, acc = 0.001, maxIter = 100):
 	oldMean = histo.GetMean()
@@ -128,11 +129,13 @@ if args.pulseStart < pedestalStart:
 #conversion_factor = 5.1783804406 # from D1 Low Light test, first SiPM (broken), use this for tests before July 20
 #conversion_factor = 5.39216613359 # from Rquarter Low Light Test, July 23 2018 (reran through -peaks on Aug 3)
 #conversion_factor = 5.56733209175 #from SCSN81 quarter Low Light Test, Aug 6, 2018)
-conversion_factor = 5.31001529557 # from PG5 tile1 LowLight test, Sept 12, 2018
+#conversion_factor = 5.31001529557 # from PG5 tile1 LowLight test, Sept 12, 2018
+conversion_factor = 5.5544965384 # from longCalibration, Nov. 5, 2018
+conversion_factor = 5.15561226064 # from SCSN81 calibration, Nov 27, 2018
 
-hist_pe_All = rt.TH1F("pe","Calculated photoelectron count, all events;p.e.;count",400,0,100)
-hist_pe_Used = rt.TH1F('hist_pe_Used','Calculated photoelectron count;p.e.;count, no OV',400,0,100)
-hist_RAW = rt.TH1F('hist_RAW','Raw Output;ADC/Integrated Voltage;Count',200,-1,2)
+hist_pe_All = rt.TH1F("pe","Calculated photoelectron count, all events;p.e.;count",100,0,200)
+hist_pe_Used = rt.TH1F('hist_pe_Used','Calculated photoelectron count;p.e.;count, no OV',400,0,200)
+hist_RAW = rt.TH1F('hist_RAW','Raw Output;ADC/Integrated Voltage;Count',500,-1,4)
 hist_Ped = rt.TH1F("hist_Ped","Pedestal Output;ADC/Voltage;Count",500,-0.01,1.1)
 
 rt.gStyle.SetOptStat("MRen")
@@ -168,20 +171,27 @@ if args.doPEconversionScaleCalculation:
 	# The limits need to be manually changed. Approximate the mid point between
 	# each peak. If the peaks arn't distinct enough, take more data or further
 	# seperate the SiPM from the tile.
-	pe1 = rt.TF1("pe1",'gaus',0.10,0.27)
+
+	startVal = 0.1
+	break1 = 0.3
+	break2 = 0.5
+	break3 = 0.7
+	break4 = 0.9
+	break5 = 1.0
+	endVal = 1.2
+	pe1 = rt.TF1("pe1",'gaus',startVal,break1)
 	pe1.SetLineColor(rt.kGreen)
-	pe2 = rt.TF1("pe2",'gaus',0.27,0.46)
+	pe2 = rt.TF1("pe2",'gaus',break1,break2)
 	pe2.SetLineColor(rt.kGreen)
-	pe3 = rt.TF1("pe3",'gaus',0.46,0.64)
+	pe3 = rt.TF1("pe3",'gaus',break2,break3)
 	pe3.SetLineColor(rt.kGreen)
-	pe4 = rt.TF1("pe4",'gaus',0.64,0.83)
+	pe4 = rt.TF1("pe4",'gaus',break3,break4)
 	pe4.SetLineColor(rt.kGreen)
-	pe5 = rt.TF1("pe5",'gaus',0.83,1.0)
+	pe5 = rt.TF1("pe5",'gaus',break4,break5)
 	pe5.SetLineColor(rt.kGreen)
-	pe6 = rt.TF1("pe6",'gaus',1.0,1.17)
+	pe6 = rt.TF1("pe6",'gaus',break5,endVal)
 	pe6.SetLineColor(rt.kGreen)
-	total = rt.TF1("sixPeaks","gaus(0)+gaus(3)+gaus(6)+gaus(9)+gaus(12)+gaus(15)",0.10,1.17)
-	#total = rt.TF1("sixPeaks","gaus(0)+gaus(3)+gaus(6)+gaus(9)",0.13,0.85)
+	total = rt.TF1("sixPeaks","gaus(0)+gaus(3)+gaus(6)+gaus(9)+gaus(12)+gaus(15)",startVal,endVal)
 	
 	hist_RAW.Fit(pe1,"R")
 	hist_RAW.Fit(pe2,"R+")
@@ -218,10 +228,6 @@ if args.doPEconversionScaleCalculation:
 			4.0/total.GetParameter(10)+
 			5.0/total.GetParameter(13)+
 			6.0/total.GetParameter(16))/6.0
-	#newCF = (1.0/total.GetParameter(1)+
-			#2.0/total.GetParameter(4)+
-			#3.0/total.GetParameter(7)+
-			#4.0/total.GetParameter(10))/4.0
 	print("New Conversion Factor = " + str(newCF))
 
 
@@ -242,6 +248,7 @@ print(str(meanPE) + " " + str(meanErr) + " " +str(sigma) + " " + str(sigmaErr) +
 
 c1 = rt.TCanvas()
 c1.SetLogy()
+hist_pe_All.GetXaxis().SetRangeUser(0,200)
 hist_pe_All.Draw()
 l1 = rt.TLine(0.2*meanPETrunc,0, 0.2*meanPETrunc, hist_pe_Used.GetMaximum())
 l2 = rt.TLine(2.0*meanPETrunc,0, 2.0*meanPETrunc, hist_pe_Used.GetMaximum())

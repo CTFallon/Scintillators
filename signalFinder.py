@@ -17,6 +17,13 @@ def findSignal(tree):
 	#find x value with largest average signal, and start the signal at 20 bins
 	# sooner, end the singal 200 bins later. (deltaT of X ns)
 	maxBin = averageSignal.index(max(averageSignal))
+
+	c1 = rt.TCanvas()
+	hist = rt.TH1F("hist","Average Signal;Time (ns); Signal",1024,0,1024)
+	for x in range(len(averageSignal)):
+		hist.SetBinContent(x,averageSignal[x])
+	hist.Draw()
+	c1.SaveAs("averageSignal.png")
 	if maxBin - 20 > 0:
 		return maxBin-20, maxBin+180
 	else:

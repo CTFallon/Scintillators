@@ -4,12 +4,13 @@ Code for processing Cosmic Ray scintillator data for HGCAL Upgrade to CMS
 ## peCalc2 options:
 
 * **-f, --file** : input file path. File should be produced using https://github.com/ChristopherRSettles/DRS4-Data-Analysis-Interface.
-* **-s, --startPulse**: for manual detection of the beginning of the signal pulse
-* **-e --endPulse**: for manual detenction of the end of the signal pulse
 * **-g, --gainScale**: multiplier on the converstion factor. Mostly unused. Its easier to manually update the conversion factor that is hard-coded.
 * **-d, --display**: creates plot to manually detect the pulse area (use alone, will stop program after producing the plot)
-* **-peaks, --peaks**: used with Low-Light (i.e., calibration) files. You may need to manually adjust the limits of the fit functions.
-* **-A, --AutoPulse**: automatically sets -s and -e based on the average pulse shape.
+* **-peaks, --peaks**: used with Low-Light (i.e., calibration) files. You will need to manually adjust the limits of the fit functions.
+
+* **-s, --startPulse**: for manual detection of the beginning of the signal pulse, use with -e
+* **-e --endPulse**: for manual detenction of the end of the signal pulse, use with -s
+* **-A, --AutoPulse**: automatically sets -s and -e based on the average pulse shape, reccomended, do not use with -s/-e
 
 ##### The output of the program is any one or more of the following:
 ###### A ROOT file named "<inputFileName>_analysed.root" that contains various histograms created (some may not be included based on which options were used above:
