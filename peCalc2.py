@@ -8,29 +8,29 @@ rt.gROOT.SetBatch(True)
 
 def truncMean(histo, acc = 0.001, maxIter = 100):
 	oldMean = histo.GetMean()
-	newMean = oldMean + 1.0
 	i = 0
-	while abs(oldMean - newMean) > acc:
-		histo.GetXaxis().SetRangeUser(newMean*0.2, newMean*2.0)
-		oldMean = newMean
+	while True:
+		histo.GetXaxis().SetRangeUser(oldMean*0.2, oldMean*2.0)
 		newMean = histo.GetMean()
 		histo.GetXaxis().SetRange()
 		i += 1
 		if i > maxIter:
 			sys.exit("maximum number of iterations reached for truncated mean")
 			return 0
-	else:
-		histo.GetXaxis().SetRangeUser(newMean*0.2, newMean*2.0)
-		meanPE = histo.GetMean()
-		sigma = histo.GetStdDev()
-		meanErr = histo.GetMeanError()
-		sigmaErr = histo.GetStdDevError()
-		print("TruncMean "
-				+ str(meanPE) + " "
-				+ str(meanErr) + " "
-				+str(sigma) + " "
-				+ str(sigmaErr))
-		return meanPE, meanErr, sigma, sigmaErr
+		if abs(oldMean - newMean) < acc:
+			histo.GetXaxis().SetRangeUser(newMean*0.2, newMean*2.0)
+			meanPE = histo.GetMean()
+			sigma = histo.GetStdDev()
+			meanErr = histo.GetMeanError()
+			sigmaErr = histo.GetStdDevError()
+			print("TruncMean "
+					+ str(meanPE) + " "
+					+ str(meanErr) + " "
+					+str(sigma) + " "
+					+ str(sigmaErr))
+			return meanPE, meanErr, sigma, sigmaErr
+		else:
+			oldMean = newMean
 
 
 parser = argparse.ArgumentParser(description="Calculate the photoelectron (p.e.) yield of a cosmicRay data set.")
@@ -130,7 +130,7 @@ if args.pulseStart < pedestalStart:
 #conversion_factor = 5.39216613359 # from Rquarter Low Light Test, July 23 2018 (reran through -peaks on Aug 3)
 #conversion_factor = 5.56733209175 #from SCSN81 quarter Low Light Test, Aug 6, 2018)
 #conversion_factor = 5.31001529557 # from PG5 tile1 LowLight test, Sept 12, 2018
-conversion_factor = 5.5544965384 # from longCalibration, Nov. 5, 2018
+#conversion_factor = 5.5544965384 # from longCalibration, Nov. 5, 2018
 conversion_factor = 5.15561226064 # from SCSN81 calibration, Nov 27, 2018
 
 hist_pe_All = rt.TH1F("pe","Calculated photoelectron count, all events;p.e.;count",100,0,200)
@@ -162,7 +162,7 @@ if args.pulseStart:
 		pe = sig*conversion_factor
 		hist_pe_All.Fill(pe)
 		hist_RAW.Fill(sig)
-		if (pe > 0.5 and not eventOver0p5flag):
+		if (not eventOver0p5flag):
 			hist_pe_Used.Fill(pe)
 
 	print("Total number of Events (Bins) over voltage: "+str(totalEventsOver0p5)+ " ("+str(totalBinsOver0p5)+")")
@@ -237,7 +237,7 @@ sigma = hist_pe_Used.GetStdDev()
 meanErr = hist_pe_Used.GetMeanError()
 sigmaErr = hist_pe_Used.GetStdDevError()
 
-print("Events Counted: " +str(int(hist_pe_Used.GetEntries())) + " (p.e. > 0.5 and not overvoltage)")
+print("# of Events that don't saturate: {} ".format(hist_pe_Used.GetEntries()))
 print("                    p.e.           err        stdDev            err")
 print("Full Mean " + str(meanPE) + " " + str(meanErr) + " " +str(sigma) + " " + str(sigmaErr))
 meanPETrunc, meanErrTrunc, sigmaTrunc, sigmaErrTrunc = truncMean(hist_pe_Used)
