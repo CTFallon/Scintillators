@@ -6,19 +6,22 @@ import sys, os.path, argparse
 from signalFinder import findSignal
 rt.gROOT.SetBatch(True)
 
-def truncMean(histo, acc = 0.001, maxIter = 100):
+def truncMean(histo, acc = 0.001, maxIter = 100): 
+	# Arie's method, suposedly more reliable than taking the full mean.
 	oldMean = histo.GetMean()
 	i = 0
 	while True:
+		# Step 1: calculate the new mean.
+		# New mean is the mean of the range [0.2*oldMean, 2.0*oldMean]
 		histo.GetXaxis().SetRangeUser(oldMean*0.2, oldMean*2.0)
-		newMean = histo.GetMean()
-		histo.GetXaxis().SetRange()
+		newMean = histo.GetMean() 
+		histo.GetXaxis().SetRange() # reset the range for the next iteration.
 		i += 1
-		if i > maxIter:
+		if i > maxIter: # provide a way for 'endless' loops to be ended
 			sys.exit("maximum number of iterations reached for truncated mean")
 			return 0
-		if abs(oldMean - newMean) < acc:
-			histo.GetXaxis().SetRangeUser(newMean*0.2, newMean*2.0)
+		if abs(oldMean - newMean) < acc: # breakout condition for the truncMean algorithm
+			histo.GetXaxis().SetRangeUser(newMean*0.2, newMean*2.0) # set the range again.
 			meanPE = histo.GetMean()
 			sigma = histo.GetStdDev()
 			meanErr = histo.GetMeanError()
@@ -26,10 +29,10 @@ def truncMean(histo, acc = 0.001, maxIter = 100):
 			print("TruncMean "
 					+ str(meanPE) + " "
 					+ str(meanErr) + " "
-					+str(sigma) + " "
+					+ str(sigma) + " "
 					+ str(sigmaErr))
 			return meanPE, meanErr, sigma, sigmaErr
-		else:
+		else: # if we don't break the loop, continue on with the iterative process
 			oldMean = newMean
 
 
@@ -82,7 +85,7 @@ oldtree.SetBranchStatus("c4",0)
 oldtree.SetBranchStatus('c{}'.format(dataCh),1)
 oldtree.SetBranchStatus('t{}'.format(dataCh),1)
 
-if args.showPlot:
+if args.showPlot: # plot every event shape ontop of oneanother.
 	c = rt.TCanvas('c','c',2000,1000)
 	oldtree.Draw("-c{0}:t{0}".format(dataCh))
 	c.SaveAs(args.inFileName[:-5]+".png")
@@ -102,13 +105,18 @@ tree.GetLeaf("t{}".format(dataCh)).SetName("time")
 nEntries = tree.GetEntries()
 print("Total Events:" +str(nEntries))
 
-if args.AutoPulse:
+if args.AutoPulse: # recomended
 	args.pulseStart, args.pulseEnd = findSignal(tree)
 
-totalEventsOver0p5 = 0
+totalEventsOver0p5 = 0 # is signal is 0.5 V, the DSR4 is saturated, and we shoudln't use this point
+# this is probably redundant thanks to the trunMean algorithm, but the algorithm was not always used.
+# I also used to have a filter on events where the calculated PE was less than 0.5,
+# but I removed that after the trunMean algorithm
+# i left this one because I figured we might 'hit gold' and get a tile/wrapping combo
+# that was fantastic and everything was over 0.5V. ha.
 totalBinsOver0p5 = 0
 
-pedestalStart = 99.
+pedestalStart = 99. # the pedestal range is [pulseStart-pedestalStart, pulseStart-pedestalEnd]
 pedestalEnd = 30.
 deltaPedestal = pedestalStart-pedestalEnd
 
@@ -118,7 +126,7 @@ if args.pulseStart < pedestalStart:
 
 #Values for signal->pe conversion taken from Ping
 # 0.96 is Ping's GainScale.
-# I wanted to set the default to 1, but not messup these numbers, so I hardcoded it in.
+# I wanted to set the default to 1, but not mess up these numbers, so I hardcoded it in.
 # these values are depreciated anyway.
 
 #gain_at_1p8V = 8.98e5 * 0.96
@@ -169,7 +177,9 @@ if args.pulseStart:
 
 if args.doPEconversionScaleCalculation:
 	# The limits need to be manually changed. Approximate the mid point between
-	# each peak. If the peaks arn't distinct enough, take more data or further
+	# each peak. To do this, run this program once without doPEconversionScaleCalculation
+	# and look at the RAW histogram.
+	# If the peaks arn't distinct enough, take more data or further
 	# seperate the SiPM from the tile.
 
 	startVal = 0.1
